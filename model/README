@@ -1,0 +1,271 @@
+
+REFERENCE:
+M. C. Peterson and M. M. Riggs. A physiologically based mathematical model of integrated calcium homeostasis and bone remodeling. Bone, 46:49–63, Jan 2010.
+
+REQUIRED LIBRARIES:
+(1) deSolve
+
+OPTIONAL LIBRARIES:
+(1) reshape
+(2) lattice
+
+
+FILES:
+(1) ca.bone.r - the main R script to run the model
+(2) ca.bone.lib.r - a library of helper functions
+(3) ca.bone.init.r - defines a function (ca.bone.init()) that returns a list of model initial conditions
+(4) ca.bone.param.r - defines a function (ca.bone.param()) that returns a list of model parameters
+(5) ca.bone.cmt.r - defines a function (ca.bone.cmt()) that returns an ordered character vector of model compartment names
+(6) ca.bone.model.r - defines an R function (ca.bone.model) that specifies differential equations and algebraic equations related to the calcium-bone model
+
+
+QUICK START:
+The file ca.bone.r contains the master script which is sourced to run the model. Teriparatide (20 mcg sq daily) dosing events are specified in ca.bone.r as an example intervention.  
+
+CABONE MODEL LIST:
+Calling ca.bone.load.model() returns a named list with all the essential model elements:
+(1) $init: a list of model initial values
+(2) $param: a list of model parameters
+(3) $model: an R function defining model differential equations and algebraic expressions
+(4) $cmt: an ordered vector of compartment names
+
+DERIVE INITAL VALUES:
+Always pass the model list through ca.bone.derive.init() prior to using the model list. 
+
+COPY INITIAL VALUES: 
+Some compartment initial values are used as "parameters" in the model. These initial values must be copied into the parameter list prior to running the model.  This copying is done with ca.bone.copy.init().  The copy init funciton is automatically called at the end of ca.bone.derive.init().  So, as long as initial values are "derived" the appropriate initial values will be automatically copied in the parameter list and an additional call to ca.bone.copy.init() should not be required.
+
+
+IMPORTANT STEPS IN ca.bone.r:
+(1)  The model components (initial values, model parameters, etc...) are first loaded into a named list via ca.bone.load.model().  
+(2)  Some initial conditions depend on model parameters.  These must be derived using ca.bone.derive.init().  The derive init funciton must be called after making changes to model parameters and before running the model to implement potential changes to initial values.
+(3) A vector of model evaluation times is created.  NOTE: time is specified in hours.
+(4) An "events" data frame is created to specify interventions during model evaluation.  A teriparatide dosing event data frame is provided.  See deSolve() documentation for details on specifiation of event data.
+(4a) NOTE: event times are added to the vector of model evaluation times to ensure that the model is evaluated at every time that an "event" happens.
+(5) The model is run by calling the lsoda() function within deSolve library.  See lsoda() documentation for more detailed discussion of lsoda() arguments. 
+(5a) Model initial values are passed in through camod$init.  Subsetting the list based on camod$cmt will ensure initial values are ordered and properly named.  NOTE: although camod$init is a list, initial values must be passed as a vector and thus must "unlisted".
+(5b) The model differential equations along with algebraic expressions to support the differential equations are passed through camod$model, an R function.
+(5c) Model parameters are passed in through the list camod$param. 
+(6) lsoda() returns a matrix with number of rows equal to number of evaluation times, and columns for quantity in each compartment with "time" in the first column. In ca.bone.r, the matrix is coerced to data frame for post-processing.
+(7) The function ca.bone.responses() takes in the simulation output data frame along with the model list and returns the simulation output with some additional responses derived from the raw simulation output (see ca.bone.lib.r for details).
+
+
+
+
+LIST OF MODEL COMPARTMENTS:
+(PUB.EQN refers to equation number specified in table 1 of: M. C. Peterson and M. M. Riggs. A physiologically based mathematical model of integrated calcium homeostasis and bone remodeling. Bone, 46:49–63, Jan 2010.)
+
+
+CMT: PTH
+DESCR: circulating PTH
+UNIT: pmol
+SITE: vasculature
+PUB.EQN: 7
+MODEL.EQN: 1
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: S
+DESCR: PTH gland pool
+UNIT: NA
+SITE: PT gland
+PUB.EQN: 10
+MODEL.EQN: 2
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: PTmax
+DESCR: PT gland max capacity
+UNIT: NA
+SITE: PT gland
+PUB.EQN: 11
+MODEL.EQN: 3
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: B
+DESCR: circulating calcitriol
+UNIT: pmol
+SITE: vasculature
+PUB.EQN: 6
+MODEL.EQN: 4
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: SC
+DESCR: subcutaneous PTH compartment
+UNIT: pmol
+SITE: subcutaneous
+PUB.EQN: NA
+MODEL.EQN: 5
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: A
+DESCR: 1-alpha hydroxylase
+UNIT: mmol/h
+SITE: kidney
+PUB.EQN: 9
+MODEL.EQN: 6
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: P
+DESCR: extracellular calcium
+UNIT: mmol
+SITE: vasculature
+PUB.EQN: 4
+MODEL.EQN: 7
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: ECCPhos
+DESCR: extracellular phosphate
+UNIT: mmol
+SITE: vasculature
+PUB.EQN: 5
+MODEL.EQN: 8
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: T
+DESCR: oral calcium
+UNIT: mmol
+SITE: gut
+PUB.EQN: 1
+MODEL.EQN: 9
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: R
+DESCR: calcitriol dependent ca absorption
+UNIT: NA
+SITE: gut
+PUB.EQN: 2
+MODEL.EQN: 10
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: HAp
+DESCR: hydroxyapatite
+UNIT: NA
+SITE: bone
+PUB.EQN: NA
+MODEL.EQN: 11
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: OBfast
+DESCR: osteoblast - slow
+UNIT: NA
+SITE: bone
+PUB.EQN: 17a 
+MODEL.EQN: 12
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: OBslow
+DESCR: osteoblast - fast
+UNIT: NA
+SITE: bone
+PUB.EQN: 17b
+MODEL.EQN: 13
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: PhosGut
+DESCR: oral phosphate
+UNIT: mmol
+SITE: gut
+PUB.EQN: 3
+MODEL.EQN: 14
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: IntraPO
+DESCR: intracellular phosphate
+UNIT: mmol
+SITE: intracellular
+PUB.EQN: 8
+MODEL.EQN: 15
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: OC
+DESCR: osteoclast
+UNIT: NA
+SITE: bone
+PUB.EQN: 18
+MODEL.EQN: 16
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: ROB1
+DESCR: responding osteoblast
+UNIT: NA
+SITE: bone
+PUB.EQN: 16
+MODEL.EQN: 17
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: TGFB
+DESCR: latent TGF beta
+UNIT: NA
+SITE: bone
+PUB.EQN: 19
+MODEL.EQN: 18
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: TGFBact
+DESCR: active TGFbeta
+UNIT: NA
+SITE: bone
+PUB.EQN: 20
+MODEL.EQN: 19
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: L
+DESCR: RANKL
+UNIT: NA
+SITE: bone
+PUB.EQN: 22
+MODEL.EQN: 20
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: RNK
+DESCR: RANK
+UNIT: NA
+SITE: bone
+PUB.EQN: 21
+MODEL.EQN: 21
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: M
+DESCR: RANK-RANKL complex
+UNIT: NA
+SITE: bone
+PUB.EQN: 24
+MODEL.EQN: 22
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: N
+DESCR: OPG-RANKL complex
+UNIT: NA
+SITE: bone
+PUB.EQN: 25
+MODEL.EQN: 23
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: O
+DESCR: OPG
+UNIT: NA
+SITE: bone
+PUB.EQN: 23
+MODEL.EQN: 24
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: Q
+DESCR: bone calcium - immediately exchangeable
+UNIT: mmol
+SITE: bone
+PUB.EQN: 12
+MODEL.EQN: 25
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: Qbone
+DESCR: bone calcium - non-immediately exchangeable
+UNIT: mmol
+SITE: bone
+PUB.EQN: 13
+MODEL.EQN: 26
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: RX2
+DESCR: RunX2
+UNIT: NA
+SITE: osteoblast
+PUB.EQN: 26
+MODEL.EQN: 27
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: CREB
+DESCR: CREB
+UNIT: NA
+SITE: osteoblast
+PUB.EQN: 27
+MODEL.EQN: 28
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: BCL2
+DESCR: Bcl-2
+UNIT: NA
+SITE: osteoblast
+PUB.EQN: 28
+MODEL.EQN: 29
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+CMT: TERISC
+DESCR: teriparatide subcutaneous dosing compartment
+UNIT: pmol
+SITE: subcutaneous
+PUB.EQN: NA
+MODEL.EQN: 30
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+

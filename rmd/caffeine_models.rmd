@@ -1,0 +1,147 @@
+---
+title: "Comparison of Caffeine Models in Literature"
+author: "Jim Hughes"
+date: "3 April 2019"
+output:
+  word_document: default
+  html_document: default
+---
+### Introduction
+
+There are numerous caffeine models in literature for adult humans. But how do
+they compare to each other? Are they similar?
+
+### Aims
+
+1. List caffeine models
+2. Replicate caffeine models for comparison
+  + using `mrgsolve`
+  
+### Caffeine Models
+
+#### Shi et al. 1993
+
+* Population: "Healthy" cigarette smoking men (n = 8)
+* Dosage: Five different single administrations over 11 days
+    + 1mg oral (once)
+    + 4mg/kg oral
+    + 4mg/kg IV infusion
+    + 2 x 2mg/kg IV infusion 3.4 hours apart
+* Model: 2 compartment model with first order absorption (infusions zero-order)
+
+> Shi, J. , Benowitz, N. L., Denaro, C. P. and Sheiner, L. B. (1993), 
+Pharmacokinetic‐pharmacodynamic modeling of caffeine: Tolerance to pressor 
+effects. Clinical Pharmacology & Therapeutics, 53: 6-14.
+https://ascpt.onlinelibrary.wiley.com/doi/epdf/10.1038/clpt.1993.3
+
+#### Csajka et al. 2005
+
+* Population: healthy adults (2 trials) (n = 24)
+* Dosage: Two different clinical trials
+    + 200mg caffeine single oral dose (n = 8)
+    + 200mg caffeine single oral dose on two occasions (1 week washout) (n =)
+* Model: 1 compartment model with first order absorption
+
+> Csajka, C. , Haller, C. A., Benowitz, N. L. and Verotta, D. (2005), 
+Mechanistic pharmacokinetic modelling of ephedrine, norephedrine and caffeine 
+in healthy subjects. British Journal of Clinical Pharmacology, 59: 335-345.
+https://bpspubs.onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2125.2005.02254.x
+
+####  Zandvliet et al. 2005
+
+* Population: Volunteers from Netherlands, chronic heroin users(n = 10)
+* Dosage: 100mg caffeine QD via inhalation (in combination with diacetylmorphine)
+* Model: 2 compartment model (inhalation straight to central compartment?)
+
+> Zandvliet, A. S., Huitema, A. D., De Jonge, M. E., Den Hoed, R. , Sparidans, 
+R. W., Hendriks, V. M., Van Den Brink, W. , Van Ree, J. M. and Beijnen, J. H. 
+(2005), Population Pharmacokinetics of Caffeine and its Metabolites Theobromine,
+Paraxanthine and Theophylline after Inhalation in Combination with 
+Diacetylmorphine. Basic & Clinical Pharmacology & Toxicology, 96: 71-79
+https://onlinelibrary.wiley.com/doi/full/10.1111/j.1742-7843.2005.pto960111.x
+
+#### Seng et al. 2009
+
+* Population: healthy Singaporean adults (n = 59)
+* Dosage: 3 or 5 mg/kg oral capsule ONCE
+* Model: 1 compartment model with first-order absorption
+
+> Seng, K. , Fun, C. , Law, Y. , Lim, W. , Fan, W. and Lim, C. (2009), Population
+pharmacokinetics of caffeine in healthy male adults using mixed‐effects models. 
+Journal of Clinical Pharmacy and Therapeutics, 34: 103-114. 
+https://onlinelibrary.wiley.com/doi/full/10.1111/j.1365-2710.2008.00976.x
+
+```{r seng}
+# Model Code
+'
+$INIT  // Initial Conditions for Compartments
+  CMT1 =  0,  // Central Compartment
+  CMT2 =  0,  // Peripheral Compartment
+  AUC =  0,   // Area under the curve
+
+$SET  // Set Differential Equation Solver Options			
+  atol = 1e-8, rtol = 1e-8
+  maxsteps = 100000
+
+$PARAM  // Population parameters
+
+  // Covariate Effects
+
+  // Additive and proportional errors
+
+
+  // Default Covariate Values for Simulation
+
+
+  // Default ETA Values for Simulation
+  // Allocated in population so set to zero
+  ETA1 = 0,  // ZCL
+  ETA2 = 0,  // ZVC
+  ETA3 = 0,  // ZVP
+  ETA4 = 0,  // ZTMAX
+
+$OMEGA  // Population parameter Variability
+  name = "omega1"
+  block = FALSE
+  labels = s(ZCL, ZVC, ZVP, ZTMAX)
+  0.096721  // ZCL
+  0.099225  // ZVC
+  0.185761  // ZVP
+  0.044521  // ZTMAX
+
+$SIGMA  // Residual Unexplained Variability	
+  block = FALSE
+  label = s(RESERR)
+  1  // Error defined as THETA in $PARAM
+
+$MAIN  // Determine covariate values
+
+
+  // Individual Parameter Values
+
+
+$ODE  // Differential Equations
+
+
+$TABLE  // Determines Values and Includes in Output	
+
+
+$CAPTURE 
+
+'
+```
+
+#### Perera et al. 2013
+
+> Vidya Perera, Annette S. Gross, Alan Forrest, Cornelia B. Landersdorfer, 
+Hongmei Xu, Sihem Ait-Oudhia and Andrew J. McLachlan (2013), A Pharmacometric 
+Approach to Investigate the Impact of Methylxanthine Abstinence and Caffeine 
+Consumption on CYP1A2 Activity. Drug Metabolism and Disposition, 41;11:1957-1966
+https://doi.org/10.1124/dmd.113.053074
+
+* Population: healthy male adults (n = 30)
+* Dosage: 100mg oral table on two occasions
+* Model: 2 compartment model with two linear clearance parameters
+    + one clearance parameter hooks into paraxanthine metabolite model
+    
+    
