@@ -35,8 +35,6 @@ $PARAM  // Population parameters
   TVCLPX = 3.81,  // clearance of paraxanthine (L/h)
   LLOQ = 0.05,  // assay limit of quantification (mg/L) {used as additive RUV}
 
-  // Default Covariate Values for Simulation
-
   // Default ETA Values for Simulation
   // Allocated in population so set to zero
   ETA1 = 0,  // PPVKA
@@ -48,6 +46,11 @@ $PARAM  // Population parameters
   ETA7 = 0,  // PPVCLCAPX
   ETA8 = 0,  // PPVCLCAO
   ETA9 = 0,  // PPVCLPX
+
+  // Default EPS values for Simulation
+  // Allocated in observations (data_set) so set to zer
+  EPS1 = 0,  // RUVPROCA
+  EPS2 = 0,  // RUVPROPX
 
 $OMEGA  // Population parameter Variability
   name = "omega1"
@@ -94,15 +97,15 @@ $TABLE  // Determines Values and Includes in Output
   double IPRECA = C1;  // caffeine individual prediction
   double IPREPX = C2;  // paraxanthine individual prediction
 
-  double DVCA = IPRECA*(1 + EPS(1)) + LLOQ;  // caffeine observed conc
-  double DVPX = IPREPX*(1 + EPS(2)) + LLOQ;  // paraxanthine observed conc
+  double DVCA = IPRECA*(1 + EPS1) + LLOQ;  // caffeine observed conc
+  double DVPX = IPREPX*(1 + EPS2) + LLOQ;  // paraxanthine observed conc
 
 $CAPTURE 
   IPRECA IPREPX DVCA DVPX GUT CENT PERI PARA 
   KA K12 K21 V1 V2 TLAG CLCAPX CLCAO CLPX
-  ETA1 ETA2 ETA3 ETA4 ETA5 ETA6 ETA7 ETA8 ETA9 EPS(1) EPS(2)
+  ETA1 ETA2 ETA3 ETA4 ETA5 ETA6 ETA7 ETA8 ETA9 EPS1 EPS2
 '
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Compile the model code
-  mod <- mrgsolve::mcode("CaffPK", code)
+  capx_mod <- mrgsolve::mcode("CaffPK", code)
