@@ -88,7 +88,12 @@
   #   parscale = init_par, fnscale = opt_emax_fn(init_par),
   #   factr = 1e12, pgtol = 1e-8
   # ))
-  # theta = 0.446; sigma = 0.760
+  # se_par <- sqrt(diag(solve(est_emax$hessian)))
+  # se_percent <- 100*se_par/est_emax$par
+
+# Final parameter values
+# theta (se%): Emax = 0.446 (9.88 %); sigma = 0.760 (7.44 %)
+# sigma is the variance of the proportional error (sd = 0.872)
   
 # Simulate standard dosing regimen
 # Pipe dataset to model
