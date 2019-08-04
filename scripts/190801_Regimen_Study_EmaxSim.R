@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------------
 # Simulate dosing regimen for caffeine plasma concentration simulation.
 # Try to replicate the simulation component of the VPC in Perera et al.
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Prepare workspace
 # Clear workspace
   rm(list=ls(all=TRUE))
@@ -10,7 +10,7 @@
 
 # Set working directory
 # if not working with RStudio project place working directory here
-# setwd("C:/.../calc_caff/")
+  setwd("E:/Hughes/Git/calc_caff")
 
 # Load package libraries
   library(dplyr)	# dplyr required for mrgsolve
@@ -25,18 +25,18 @@
   source("scripts/functions_utility.R")  # functions utility
   source("model/caffpk_perera_MA.R")  # PopPK model script
   source("scripts/190730_Data_Preparation.R")  # Observed calcium data
-  
+
 # Read in cabone model
   cabone_mod <- mrgsolve::mread("model/cabone_caffpkpd.cpp")  # cabone model
-  
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Number of individuals
   nsim <- 1000
   trt <- with(dplyr::filter(pk_tb, !duplicated(ID)), table(TRT))
   uid <- sum(trt)  # Number of observed individuals
   nid <- uid*nsim  # Number of simulated individuals
   ID <- 1:nid  # Sequence of individual ID's
-  
+
 # Source population and add relevant info to population data
   source("scripts/190730_Population_Study.R")
   pop_tb <- dplyr::mutate(pop_tb, ID_ORIG = rep(unique(pk_tb$ID_ORIG), nsim))
@@ -45,7 +45,7 @@
     dplyr::inner_join(pop_tb, by = "ID_ORIG") %>%
     dplyr::arrange(ID) %>%
     dplyr::mutate(PDEMAX = 0.446)  # standard error (hessian): sigma: 0.760
-  
+
 # Create simulation input dataset
 # Define time points
   conc_times <- seq(0, 48, by = 0.5)
@@ -54,7 +54,7 @@
     time = rep(conc_times, times = nid),
     amt = 0, evid = 0, rate = 0, cmt = 1
   )
-  
+
 # Create input and run model all in one pipe (to save on memory usage)
 # Begin benchmark
   tictoc::tic()
@@ -63,7 +63,7 @@
       dplyr::mutate(pk_tb, ID = x + ID)
     }) %>%
     dplyr::filter(!is.na(time)) %>%
-    dplyr::select(ID, time, amt, evid, rate, cmt) %>%
+    dplyr::select(ID, time, amt, evid, rate, cmt, ID_ORIG) %>%
     dplyr::bind_rows(conc_tb) %>%
     dplyr::arrange(ID, time, desc(evid)) %>%
 # Pipe dataset into cabone model
@@ -73,20 +73,20 @@
     mrgsolve::mrgsim() %>%  # simulate using mrgsolve
     tibble::as_tibble() %>%
     readr::write_rds("output/EmaxSim.rds")
-# Finish benchmark (simulation expected to take ~17 hours)
+# Finish benchmark (simulation expected to take ~30 hours)
   tictoc::toc()
-  
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Visual Plots
 # Set ggplot2 theme
   theme_bw2 <- theme_set(theme_bw(base_size = 14))
   theme_update(plot.title = element_text(hjust = 0.5))
-  
+
 # Some type of VPC here
-  
-  
-  
-  
+
+
+
+
 # Prepare data
   calamt_plas <- output_tb %>%
     dplyr::filter(cmt == 6) %>%
@@ -100,7 +100,7 @@
   urin_tb <- pk_tb %>%
     dplyr::filter(cmt == 31 & evid == 1) %>%
     dplyr::mutate(UCA = calamt_urin, RES = CALAMT - calamt_urin, logRES = log(CALAMT) - log(calamt_urin))
-  
+
 # Plasma Calcium Residuals vs. Time
   p <- NULL
   p <- ggplot(aes(x = time, y = RES), data = plas_tb)
@@ -109,13 +109,13 @@
   p <- p + geom_smooth(method = "loess", size = 1, colour = "red")
   p <- p + geom_hline(yintercept = 0, linetype = "dashed")
   p <- p + scale_x_continuous("Time (hours)")
-  p1 <- p + scale_y_continuous("Residual (mmol)", limits = c(-5, 5), 
+  p1 <- p + scale_y_continuous("Residual (mmol)", limits = c(-5, 5),
     breaks = c(-5, -3, -1, 0, 1, 3, 5))
   ggsave("output/PlasResVsTime_EmaxOpt.png", width = 10.7, height = 8.03)
-  
+
   p1_facet <- p1 + facet_wrap(~TRT)
   ggsave("output/PlasResVsTimeFacet_EmaxOpt.png", width = 10.7, height = 8.03)
-  
+
 # Plasma Calcium Residuals vs. Predicted
   p <- NULL
   p <- ggplot(aes(x = P, y = RES), data = plas_tb)
@@ -124,13 +124,13 @@
   p <- p + geom_smooth(method = "loess", size = 1, colour = "red")
   p <- p + geom_hline(yintercept = 0, linetype = "dashed")
   p <- p + scale_x_continuous("Plasma Calcium (mmol)")
-  p2 <- p + scale_y_continuous("Residual (mmol)", limits = c(-5, 5), 
+  p2 <- p + scale_y_continuous("Residual (mmol)", limits = c(-5, 5),
     breaks = c(-5, -3, -1, 0, 1, 3, 5))
   ggsave("output/PlasResVsPred_EmaxOpt.png", width = 10.7, height = 8.03)
-  
+
   p2_facet <- p2 + facet_wrap(~TRT)
   ggsave("output/PlasResVsPredFacet_EmaxOpt.png", width = 10.7, height = 8.03)
-  
+
 # Urine Calcium Residuals vs. Treatment Arm
   p <- NULL
   p <- ggplot(data = urin_tb)
@@ -141,14 +141,14 @@
   p <- p + scale_y_log10("Residual (mmol)")
   p3 <- p + facet_wrap(~TRT)
   ggsave("output/UrinResVsTrt_EmaxOpt.png", width = 10.7, height = 8.03)
-  
-  
+
+
   p <- NULL
   p <- ggplot(data = urin_tb)
   p <- p + ggtitle("Urine Calcium Residuals")
-  p <- p + geom_dotplot(aes(x = "Predicted", y = UCA), 
+  p <- p + geom_dotplot(aes(x = "Predicted", y = UCA),
     stackdir = "center", binaxis = "y", dotsize = 0.5)
-  p <- p + geom_dotplot(aes(x = "Observed", y = CALAMT), 
+  p <- p + geom_dotplot(aes(x = "Observed", y = CALAMT),
     stackdir = "center", binaxis = "y", dotsize = 0.5)
   p <- p + scale_x_discrete("Treatment Arm")
   p <- p + scale_y_log10("Residual (mmol)")
