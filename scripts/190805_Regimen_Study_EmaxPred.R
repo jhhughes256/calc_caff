@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------------
 # Simulate dosing regimen for caffeine plasma concentration simulation.
 # Try to replicate the simulation component of the VPC in Perera et al.
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Prepare workspace
 # Clear workspace
   rm(list=ls(all=TRUE))
@@ -10,7 +10,7 @@
 
 # Set working directory
 # if not working with RStudio project place working directory here
-  setwd("E:/Hughes/Git/calc_caff")
+# setwd("C:/.../calc_caff/")
 
 # Load package libraries
   library(dplyr)	# dplyr required for mrgsolve
@@ -25,26 +25,32 @@
   source("scripts/functions_utility.R")  # functions utility
   source("model/caffpk_perera_MA.R")  # PopPK model script
   source("scripts/190730_Data_Preparation.R")  # Observed calcium data
-
+  
 # Read in cabone model
   cabone_mod <- mrgsolve::mread("model/cabone_caffpkpd.cpp")  # cabone model
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Number of individuals
-  nsim <- 1000
+  nsim <- 1
   trt <- with(dplyr::filter(pk_tb, !duplicated(ID)), table(TRT))
   uid <- sum(trt)  # Number of observed individuals
   nid <- uid*nsim  # Number of simulated individuals
   ID <- 1:nid  # Sequence of individual ID's
-
+  
 # Source population and add relevant info to population data
   source("scripts/190730_Population_Study.R")
-  pop_tb <- dplyr::mutate(pop_tb, ID_ORIG = rep(unique(pk_tb$ID_ORIG), nsim))
+  pop_tb <- dplyr::mutate(pop_tb, 
+      ID_ORIG = rep(unique(pk_tb$ID_ORIG), nsim),
+      SIM = rep(1:nsim, each = length(unique(pk_tb$ID_ORIG)))
+    ) %>% dplyr::inner_join(trt_tb, by = "ID_ORIG")
   pop_tb <- dplyr::filter(pk_tb, !duplicated(ID)) %>%
     dplyr::select(ID_ORIG, P_0, GFR_0) %>%
     dplyr::inner_join(pop_tb, by = "ID_ORIG") %>%
     dplyr::arrange(ID) %>%
-    dplyr::mutate(PDEMAX = 0.446)  # standard error (hessian): sigma: 0.760
+    dplyr::mutate(PDEMAX = 0.446)
+# From `190731_Regimen_Study_EmaxOpt.R`:
+# theta (se%): Emax = 0.446 (9.88 %); sigma = 0.760 (7.44 %)
+# sigma is the variance of the proportional error (sd = 0.872)
 
 # Create simulation input dataset
 # Define time points
@@ -63,7 +69,7 @@
       dplyr::mutate(pk_tb, ID = x + ID)
     }) %>%
     dplyr::filter(!is.na(time)) %>%
-    dplyr::select(ID, time, amt, evid, rate, cmt, SIM, ID_ORIG, TRT) %>%
+    dplyr::select(ID, time, amt, evid, rate, cmt) %>%
     dplyr::bind_rows(conc_tb) %>%
     dplyr::arrange(ID, time, desc(evid)) %>%
 # Pipe dataset into cabone model
@@ -72,6 +78,6 @@
     mrgsolve::carry_out(amt, evid, rate, cmt, SIM, ID_ORIG, TRT) %>%  # output
     mrgsolve::mrgsim() %>%  # simulate using mrgsolve
     tibble::as_tibble() %>%
-    readr::write_rds("output/EmaxSim.rds")
-# Finish benchmark (simulation expected to take ~30 hours)
+    readr::write_rds("output/EmaxPred.rds")
+# Finish benchmark (simulation expected to take ~60 seconds)
   tictoc::toc()

@@ -86,8 +86,8 @@
     dplyr::arrange(ID, time, dplyr::desc(amt))
   
 # Identify caffeine and plasma ID's
-  id_caff <- dplyr::filter(pk_tb, TRT == "Caffeine" & !duplicated(ID)) %>% 
-    dplyr::pull(ID)
-  id_plac <- dplyr::filter(pk_tb, TRT == "Placebo" & !duplicated(ID)) %>% 
-    dplyr::pull(ID)
+  trt_tb <- pk_tb %>%
+    dplyr::filter(!duplicated(ID_ORIG)) %>%
+    dplyr::select(ID_ORIG, TRT) %>%
+    dplyr::mutate(TRT = dplyr::if_else(TRT == "Caffeine", 1, 0))
   
